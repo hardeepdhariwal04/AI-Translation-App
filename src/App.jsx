@@ -147,25 +147,7 @@ const App = () => {
           />
           <label htmlFor="punjabi">Punjabi</label>
 
-          <input
-            type="radio"
-            id="german"
-            name="language"
-            value="German"
-            checked={formData.language === "German"}
-            onChange={handleInputChange}
-          />
-          <label htmlFor="german">German</label>
-
-          <input
-            type="radio"
-            id="italian"
-            name="language"
-            value="Italian"
-            checked={formData.language === "Italian"}
-            onChange={handleInputChange}
-          />
-          <label htmlFor="italian">Italian</label>
+      
 
           <input
             type="radio"
