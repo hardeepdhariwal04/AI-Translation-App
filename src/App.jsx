@@ -4,14 +4,20 @@ import { Configuration, OpenAIApi } from "openai";
 import { BeatLoader } from "react-spinners";
 
 const App = () => {
-  const [formData, setFormData] = useState({ language: "Hindi", message: "" });
+  const [formData, setFormData] = useState({ language: "Hindi", message: "", model: "gpt-4" });
   const [error, setError] = useState("");
   const [showNotification, setShowNotification] = useState(false);
   const [translation, setTranslation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  const apiKey = import.meta.env.VITE_OPENAI_KEY;
+  if (!apiKey) {
+    console.error("API key is missing. Please set the VITE_OPENAI_KEY environment variable.");
+  }
 
   const configuration = new Configuration({
-    apiKey: import.meta.env.VITE_OPENAI_KEY,
+    apiKey: apiKey,
   });
   const openai = new OpenAIApi(configuration);
 
@@ -21,20 +27,41 @@ const App = () => {
   };
 
   const translate = async () => {
-    const { language, message } = formData;
-    const response = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: `Translate this into ${language}: ${message}`,
-      temperature: 0.3,
-      max_tokens: 100,
-      top_p: 1.0,
-      frequency_penalty: 0.0,
-      presence_penalty: 0.0,
-    });
+    setIsLoading(true);
+    const { language, message, model } = formData;
 
-    const translatedText = response.data.choices[0].text.trim();
-    setIsLoading(false);
-    setTranslation(translatedText);
+    try {
+      const response = await openai.createChatCompletion({
+        model: model, // use the model from formData
+        messages: [
+          {
+            role: "system",
+            content: `You are a translator that translates text into ${language}`,
+          },
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 100,
+        top_p: 1.0,
+        frequency_penalty: 0.0,
+        presence_penalty: 0.0,
+      });
+
+      const translatedText = response.data.choices[0].message.content.trim();
+      setTranslation(translatedText);
+      setHistory([...history, { language, message, translation: translatedText }]);
+    } catch (error) {
+      if (error.response) {
+        setError(error.response.data.error.message);
+      } else {
+        setError("An error occurred while translating. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOnSubmit = (e) => {
@@ -43,7 +70,6 @@ const App = () => {
       setError("Please enter the message.");
       return;
     }
-    setIsLoading(true);
     translate();
   };
 
@@ -51,7 +77,7 @@ const App = () => {
     navigator.clipboard
       .writeText(translation)
       .then(() => displayNotification())
-      .catch((err) => console.error("failed to copy: ", err));
+      .catch((err) => console.error("Failed to copy: ", err));
   };
 
   const displayNotification = () => {
@@ -61,9 +87,13 @@ const App = () => {
     }, 3000);
   };
 
+  const handleClearHistory = () => {
+    setHistory([]);
+  };
+
   return (
     <div className="container">
-      <h1>Translation</h1>
+      <h1>TRANSLATION</h1>
 
       <form onSubmit={handleOnSubmit}>
         <div className="choices">
@@ -72,16 +102,27 @@ const App = () => {
             id="hindi"
             name="language"
             value="Hindi"
-            defaultChecked={formData.language}
+            checked={formData.language === "Hindi"}
             onChange={handleInputChange}
           />
           <label htmlFor="hindi">Hindi</label>
 
           <input
             type="radio"
+            id="french"
+            name="language"
+            value="French"
+            checked={formData.language === "French"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="french">French</label>
+
+          <input
+            type="radio"
             id="spanish"
             name="language"
             value="Spanish"
+            checked={formData.language === "Spanish"}
             onChange={handleInputChange}
           />
           <label htmlFor="spanish">Spanish</label>
@@ -91,14 +132,76 @@ const App = () => {
             id="japanese"
             name="language"
             value="Japanese"
+            checked={formData.language === "Japanese"}
             onChange={handleInputChange}
           />
           <label htmlFor="japanese">Japanese</label>
+
+          <input
+            type="radio"
+            id="punjabi"
+            name="language"
+            value="Punjabi"
+            checked={formData.language === "Punjabi"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="punjabi">Punjabi</label>
+
+          <input
+            type="radio"
+            id="german"
+            name="language"
+            value="German"
+            checked={formData.language === "German"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="german">German</label>
+
+          <input
+            type="radio"
+            id="italian"
+            name="language"
+            value="Italian"
+            checked={formData.language === "Italian"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="italian">Italian</label>
+
+          <input
+            type="radio"
+            id="gpt-3.5-turbo"
+            name="model"
+            value="gpt-3.5-turbo"
+            checked={formData.model === "gpt-3.5-turbo"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="gpt-3.5-turbo">GPT-3.5 Turbo</label>
+
+          <input
+            type="radio"
+            id="gpt4"
+            name="model"
+            value="gpt-4"
+            checked={formData.model === "gpt-4"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="gpt4">GPT4</label>
+
+          <input
+            type="radio"
+            id="gpt4-turbo"
+            name="model"
+            value="gpt-4-turbo"
+            checked={formData.model === "gpt-4-turbo"}
+            onChange={handleInputChange}
+          />
+          <label htmlFor="gpt4-turbo">GPT4 Turbo</label>
         </div>
 
         <textarea
           name="message"
-          placeholder="Type your message here.."
+          placeholder="Type your message here..."
+          value={formData.message}
           onChange={handleInputChange}
         ></textarea>
 
@@ -127,6 +230,20 @@ const App = () => {
         {isLoading ? <BeatLoader size={12} color={"red"} /> : translation}
       </div>
 
+      <div className="history">
+        <h2>Translation History</h2>
+        <ul>
+          {history.map((item, index) => (
+            <li key={index}>
+              <span>Language: {item.language}</span>
+              <span>Message: {item.message}</span>
+              <span>Translation: {item.translation}</span>
+            </li>
+          ))}
+        </ul>
+        <button onClick={handleClearHistory}>Clear History</button>
+      </div>
+
       <div className={`notification ${showNotification ? "active" : ""}`}>
         Copied to clipboard!
       </div>
@@ -135,3 +252,4 @@ const App = () => {
 };
 
 export default App;
+
